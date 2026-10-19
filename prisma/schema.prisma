@@ -1,0 +1,41 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// A standalone note (quick or password) is deleted the moment it ends.
+// A note inside a collection is wiped but its record stays for a few days
+// so the collection can show "Expired" or "Fully viewed".
+model Note {
+  id               String      @id
+  contentEncrypted String
+  labelEncrypted   String?
+  viewLimit        Int         @default(1)
+  viewCount        Int         @default(0)
+  passwordHash     String?
+  failedAttempts   Int         @default(0)
+  createdAt        DateTime    @default(now())
+  expiresAt        DateTime
+  endedAt          DateTime?
+  endReason        String?
+  collectionId     String?
+  collection       Collection? @relation(fields: [collectionId], references: [id], onDelete: Cascade)
+
+  @@index([expiresAt])
+  @@index([collectionId])
+}
+
+model Collection {
+  id             String    @id
+  slug           String    @unique
+  viewHash       String
+  ownerHash      String
+  failedAttempts Int       @default(0)
+  lockedUntil    DateTime?
+  createdAt      DateTime  @default(now())
+  notes          Note[]
+}
